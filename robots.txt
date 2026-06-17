@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://deboragouveia.com.br/sitemap.xml
