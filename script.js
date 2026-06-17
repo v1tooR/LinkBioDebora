@@ -4,8 +4,8 @@ const shareButton = document.querySelector('[data-share]');
 if (shareButton) {
   shareButton.addEventListener('click', async () => {
     const shareData = {
-      title: 'Dra. Debora Gouveia',
-      text: 'Contato profissional da Dra. Debora Gouveia, Medicina Veterinária Integrativa.',
+      title: 'Debora Gouveia',
+      text: 'Contato profissional da Debora Gouveia, Medicina Veterinária Integrativa.',
       url: window.location.href,
     };
 
@@ -25,16 +25,16 @@ if (shareButton) {
 const slider = document.querySelector('[data-slider]');
 
 if (slider) {
-  const track       = slider.querySelector('[data-slider-track]');
-  const slides      = Array.from(slider.querySelectorAll('.slider__slide'));
-  const prevBtn     = slider.querySelector('[data-slider-prev]');
-  const nextBtn     = slider.querySelector('[data-slider-next]');
-  const dotsWrap    = slider.querySelector('[data-slider-dots]');
-  const viewport    = slider.querySelector('.slider__viewport');
-  let current       = 0;
-  let autoplayTimer = null;
+  const track    = slider.querySelector('[data-slider-track]');
+  const slides   = Array.from(slider.querySelectorAll('.slider__slide'));
+  const prevBtn  = slider.querySelector('[data-slider-prev]');
+  const nextBtn  = slider.querySelector('[data-slider-next]');
+  const dotsWrap = slider.querySelector('[data-slider-dots]');
+  const viewport = slider.querySelector('.slider__viewport');
+  let current    = 0;
+  let autoTimer  = null;
 
-  // Build dots
+  // ── Build dots (todos no DOM; CSS + classes controlam visibilidade)
   const dots = slides.map((_, i) => {
     const dot = document.createElement('button');
     dot.className = 'slider__dot';
@@ -45,52 +45,93 @@ if (slider) {
     return dot;
   });
 
+  // Atualiza o pager: apenas ±2 do atual ficam visíveis
+  function updateDots() {
+    dots.forEach((dot, i) => {
+      const dist = Math.abs(i - current);
+      dot.setAttribute('aria-current', i === current ? 'true' : 'false');
+      dot.classList.toggle('is-near', dist === 1);
+      dot.classList.toggle('is-edge', dist === 2);
+    });
+  }
+
   function goTo(index) {
     current = ((index % slides.length) + slides.length) % slides.length;
     track.style.transform = `translateX(-${current * 100}%)`;
-    dots.forEach((dot, i) =>
-      dot.setAttribute('aria-current', i === current ? 'true' : 'false')
-    );
+    updateDots();
   }
 
   function resetAutoplay() {
-    clearInterval(autoplayTimer);
-    autoplayTimer = setInterval(() => goTo(current + 1), 4500);
+    clearInterval(autoTimer);
+    autoTimer = setInterval(() => goTo(current + 1), 4500);
   }
 
   prevBtn.addEventListener('click', () => { goTo(current - 1); resetAutoplay(); });
   nextBtn.addEventListener('click', () => { goTo(current + 1); resetAutoplay(); });
 
-  // Touch / pointer swipe
-  let dragStartX   = 0;
-  let dragStartTime = 0;
-  let dragging     = false;
+  // ── Touch / swipe — distingue arrasto horizontal de scroll vertical
+  let startX    = 0;
+  let startY    = 0;
+  let startTime = 0;
+  let dragging  = false;
+  let isHoriz   = null; // determinado no primeiro pointermove
 
   viewport.addEventListener('pointerdown', (e) => {
-    dragging      = true;
-    dragStartX    = e.clientX;
-    dragStartTime = Date.now();
+    startX    = e.clientX;
+    startY    = e.clientY;
+    startTime = Date.now();
+    dragging  = true;
+    isHoriz   = null;
     viewport.setPointerCapture(e.pointerId);
+    viewport.classList.add('is-dragging');
   }, { passive: true });
+
+  // passive:false permite preventDefault() para travar scroll horizontal
+  viewport.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = Math.abs(e.clientX - startX);
+    const dy = Math.abs(e.clientY - startY);
+
+    // Determina direção na primeira movimentação perceptível
+    if (isHoriz === null && (dx > 5 || dy > 5)) {
+      isHoriz = dx > dy;
+    }
+
+    // Bloqueia scroll da página durante arrasto horizontal
+    if (isHoriz) e.preventDefault();
+  }, { passive: false });
 
   viewport.addEventListener('pointerup', (e) => {
     if (!dragging) return;
     dragging = false;
-    const dx = e.clientX - dragStartX;
-    const dt = Date.now() - dragStartTime;
-    if (Math.abs(dx) > 40 || (Math.abs(dx) > 20 && dt < 300)) {
+    viewport.classList.remove('is-dragging');
+
+    const dx = e.clientX - startX;
+    const dt = Date.now() - startTime;
+
+    if (isHoriz && (Math.abs(dx) > 40 || (Math.abs(dx) > 18 && dt < 300))) {
       goTo(dx < 0 ? current + 1 : current - 1);
       resetAutoplay();
     }
+    isHoriz = null;
   }, { passive: true });
 
-  viewport.addEventListener('pointercancel', () => { dragging = false; });
+  viewport.addEventListener('pointercancel', () => {
+    dragging = false;
+    isHoriz  = null;
+    viewport.classList.remove('is-dragging');
+  });
 
-  // Pause autoplay on hover
-  slider.addEventListener('mouseenter', () => clearInterval(autoplayTimer));
+  // Pausa autoplay em hover (desktop)
+  slider.addEventListener('mouseenter', () => clearInterval(autoTimer));
   slider.addEventListener('mouseleave', resetAutoplay);
 
+  // Init sem transição para evitar animação de entrada nos dots
+  track.classList.add('no-transition');
   goTo(0);
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    track.classList.remove('no-transition');
+  }));
   resetAutoplay();
 }
 
@@ -108,6 +149,5 @@ if (revealItems.length && 'IntersectionObserver' in window) {
     },
     { threshold: 0.08, rootMargin: '0px 0px -30px 0px' }
   );
-
   revealItems.forEach((el) => observer.observe(el));
 }

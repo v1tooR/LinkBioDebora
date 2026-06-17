@@ -569,28 +569,41 @@ h2 {
 }
 
 .photo-slider .section-heading {
-  padding: 20px 20px 0;
+  padding: 20px 20px 12px;
 }
 
 .slider {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
 }
 
 .slider__viewport {
   overflow: hidden;
   background: var(--soft-blue);
+  /* Cursor feedback for drag */
+  cursor: grab;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.slider__viewport.is-dragging {
+  cursor: grabbing;
 }
 
 .slider__track {
   display: flex;
-  transition: transform 320ms cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 340ms cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+.slider__track.no-transition {
+  transition: none !important;
 }
 
 .slider__slide {
   flex: 0 0 100%;
+  min-width: 0;
 }
 
 .slider__slide img {
@@ -599,22 +612,23 @@ h2 {
   object-fit: cover;
   display: block;
   pointer-events: none;
+  -webkit-user-drag: none;
 }
 
 .slider__controls {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 20px 20px;
+  padding: 14px 20px 20px;
 }
 
 .slider__button {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border: 1.5px solid var(--line-strong);
   border-radius: 999px;
   background: var(--white);
@@ -634,32 +648,69 @@ h2 {
   color: var(--white);
 }
 
+.slider__button:active {
+  transform: scale(0.94);
+}
+
 .slider__button:focus-visible {
   outline: 3px solid var(--yellow);
   outline-offset: 3px;
 }
 
+/* ─ Pager dots: apenas ±2 do slide atual ficam visíveis.
+   Os demais encolhem para width:0 / margin:0 / opacity:0
+   sem causar overflow. ─ */
 .slider__dots {
+  flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
+  /* gap:0 — cada dot controla sua própria margem */
+  gap: 0;
+  min-height: 10px;
+  overflow: hidden;
 }
 
 .slider__dot {
-  width: 8px;
+  flex-shrink: 0;
+  width: 0;
   height: 8px;
   padding: 0;
+  margin: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(4, 13, 80, 0.15);
+  background: transparent;
+  opacity: 0;
   cursor: pointer;
-  transition: width 250ms var(--ease), background 250ms var(--ease);
+  transition:
+    width    280ms var(--ease),
+    opacity  250ms var(--ease),
+    margin   280ms var(--ease),
+    background 280ms var(--ease);
 }
 
+/* Ativo */
 .slider__dot[aria-current="true"] {
-  width: 24px;
+  width: 22px;
   background: var(--yellow);
+  opacity: 1;
+  margin: 0 4px;
+}
+
+/* Adjacente (±1) */
+.slider__dot.is-near {
+  width: 8px;
+  background: rgba(4, 13, 80, 0.38);
+  opacity: 1;
+  margin: 0 4px;
+}
+
+/* Borda (±2) */
+.slider__dot.is-edge {
+  width: 6px;
+  background: rgba(4, 13, 80, 0.18);
+  opacity: 0.55;
+  margin: 0 4px;
 }
 
 .slider__dot:focus-visible {
